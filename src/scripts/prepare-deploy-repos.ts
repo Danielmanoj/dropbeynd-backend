@@ -193,7 +193,10 @@ fs.writeJsonSync(path.join(FRONTEND_DEPLOY, "tsconfig.json"), frontendTsconfig, 
 
 // Write vercel.json
 const vercelJson = {
-  rewrites: [{ source: "/(.*)", destination: "/index.html" }],
+  rewrites: [
+    { source: "/api/:path*", destination: "https://dropbeynd-backend.onrender.com/api/:path*" },
+    { source: "/(.*)", destination: "/index.html" }
+  ],
 };
 fs.writeJsonSync(path.join(FRONTEND_DEPLOY, "vercel.json"), vercelJson, { spaces: 2 });
 
