@@ -378,7 +378,7 @@ const backendPkg = {
     "@types/pg": "^8.11.11",
     "cross-env": "^10.1.0",
     "drizzle-kit": "^0.30.5",
-    "esbuild": "^0.27.3",
+    "esbuild": "0.25.0",
     "esbuild-plugin-pino": "^2.3.3",
     "pino-pretty": "^13.0.0",
     "thread-stream": "^3.1.0",
@@ -386,6 +386,12 @@ const backendPkg = {
   },
 };
 fs.writeJsonSync(path.join(BACKEND_DEPLOY, "package.json"), backendPkg, { spaces: 2 });
+
+// Write .npmrc for Backend
+fs.writeFileSync(path.join(BACKEND_DEPLOY, ".npmrc"), "legacy-peer-deps=true\n");
+
+// Write .npmrc for Frontend
+fs.writeFileSync(path.join(FRONTEND_DEPLOY, ".npmrc"), "legacy-peer-deps=true\n");
 
 // Standalone backend tsconfig.json
 const backendTsconfig = {
@@ -411,7 +417,7 @@ const renderYaml = `services:
     name: dropbeyond-backend
     env: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
