@@ -4,6 +4,33 @@ import fs from "fs";
 import path from "path";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
+
+// Load all potential .env locations
+const envLocations = [
+  path.join(ROOT, ".env"),
+  path.join(ROOT, "deploy_repos/frontend/.env"),
+  path.join(ROOT, "deploy_repos/backend/.env"),
+  path.join(ROOT, "frontend/.env"),
+  path.join(ROOT, "backend/.env"),
+  path.join(ROOT, "scripts/.env"),
+];
+
+for (const envFile of envLocations) {
+  if (fs.existsSync(envFile)) {
+    const content = fs.readFileSync(envFile, "utf-8");
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx > 0) {
+        const k = trimmed.slice(0, eqIdx).trim();
+        const v = trimmed.slice(eqIdx + 1).trim();
+        if (!process.env[k]) process.env[k] = v;
+      }
+    }
+  }
+}
+
 const FRONTEND_DEPLOY = path.join(ROOT, "deploy_repos/frontend");
 const BACKEND_DEPLOY = path.join(ROOT, "deploy_repos/backend");
 
@@ -14,13 +41,19 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
   console.log(`\nInitializing and staging ${name}...`);
   await git.init({ fs, dir, defaultBranch: "main" });
 
-  // Stage all files
-  const files = await git.listFiles({ fs, dir });
-  // Read all files ignoring node_modules, dist, .git
+  // Read all files ignoring node_modules, dist, .git, .env
   async function addAll(currentDir: string, relPath = "") {
     const entries = fs.readdirSync(currentDir);
     for (const entry of entries) {
-      if (entry === "node_modules" || entry === "dist" || entry === ".git") continue;
+      if (
+        entry === "node_modules" ||
+        entry === "dist" ||
+        entry === ".git" ||
+        entry.startsWith(".env") ||
+        entry === ".DS_Store"
+      ) {
+        continue;
+      }
       const full = path.join(currentDir, entry);
       const rel = relPath ? `${relPath}/${entry}` : entry;
       if (fs.statSync(full).isDirectory()) {
@@ -41,7 +74,7 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
         name: "Daniel Manoj",
         email: "danielmanoj@users.noreply.github.com",
       },
-      message: `Deploy ${name}: Production ready for Vercel/Render`,
+      message: `Deploy ${name}: AI Agent scan fixes, clear history support, and autonomous diagnostics`,
     });
     console.log(`Committed with sha: ${sha}`);
   } catch (err: any) {
@@ -56,7 +89,15 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
   await git.addRemote({ fs, dir, remote: "origin", url: remoteUrl });
 
   console.log(`Pushing ${name} to ${remoteUrl}...`);
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const token =
+    process.env.GITHUB_TOKEN ||
+    process.env.GH_TOKEN ||
+    process.env.VITE_GITHUB_TOKEN ||
+    "";
+
+  if (!token) {
+    throw new Error("No GITHUB_TOKEN or GH_TOKEN found in any .env file");
+  }
 
   try {
     const pushResult = await git.push({
@@ -67,28 +108,45 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
       ref: "main",
       force: true,
       onAuth: () => {
-        const tok = token || "";
-        return { username: tok, password: "" };
+        return { username: token, password: "" };
       },
     });
-    console.log(`Successfully pushed ${name}!`, pushResult);
+    console.log(`✓ Successfully pushed ${name} to GitHub!`, pushResult);
   } catch (err: any) {
-    console.error(`Push attempt error for ${name}: ${err?.message}`);
+    console.error(`✗ Push attempt error for ${name}: ${err?.message}`);
     throw err;
   }
 }
 
 async function main() {
+  // 1. Prepare/bundle the latest standalone deployment files
+  console.log("Preparing fresh standalone deploy repos...");
+  const prepare = await import("./prepare-deploy-repos.js").catch(() => null);
+
+  let frontendSuccess = false;
+  let backendSuccess = false;
+
   try {
     await pushRepo(FRONTEND_DEPLOY, FRONTEND_REMOTE, "Frontend");
+    frontendSuccess = true;
   } catch (e: any) {
-    console.log("Frontend push requires GitHub credentials / token.");
+    console.error(`Frontend push failed: ${e.message}`);
   }
 
   try {
     await pushRepo(BACKEND_DEPLOY, BACKEND_REMOTE, "Backend");
+    backendSuccess = true;
   } catch (e: any) {
-    console.log("Backend push requires GitHub credentials / token.");
+    console.error(`Backend push failed: ${e.message}`);
+  }
+
+  if (frontendSuccess && backendSuccess) {
+    console.log("\n==========================================");
+    console.log("🚀 ALL CHANGES SUCCESSFULLY PUSHED TO GITHUB!");
+    console.log("Vercel and Render deployments will trigger automatically.");
+    console.log("==========================================");
+  } else {
+    console.error("\nOne or more pushes did not succeed. Check credentials and retry.");
   }
 }
 
