@@ -134,7 +134,7 @@ async function runSystemScan(scanId: string) {
 
   await addLog(scanId, "info", "Analyzing system data with AI...");
 
-  const aiPrompt = `You are an expert platform engineer auditing a creator economy SaaS platform (CreatorHub).
+  const aiPrompt = `You are an expert platform engineer auditing a creator economy SaaS platform (DropBeynd).
 
 Platform stats:
 - Users: ${stats.users}
@@ -343,7 +343,7 @@ async function runUiScan(scanId: string) {
 
   const stats = await collectSystemStats();
 
-  const aiPrompt = `You are a senior UX engineer and product manager auditing a creator economy platform (CreatorHub).
+  const aiPrompt = `You are a senior UX engineer and product manager auditing a creator economy platform (DropBeynd).
 
 Platform features implemented:
 - Netflix-style homepage with hero banner + content rows

@@ -49,7 +49,7 @@ router.post("/checkout", requireAuth, async (req, res) => {
         price_data: {
           currency: "usd",
           product_data: {
-            name: "CreatorHub Verified Badge",
+            name: "DropBeynd Verified Badge",
             description: "Monthly verified badge subscription — cancel anytime",
           },
           unit_amount: 500,
