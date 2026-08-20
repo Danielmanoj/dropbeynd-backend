@@ -119,10 +119,6 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
 }
 
 async function main() {
-  // 1. Prepare/bundle the latest standalone deployment files
-  console.log("Preparing fresh standalone deploy repos...");
-  const prepare = await import("./prepare-deploy-repos.js").catch(() => null);
-
   let frontendSuccess = false;
   let backendSuccess = false;
 
