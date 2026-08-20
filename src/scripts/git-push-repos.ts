@@ -74,7 +74,7 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
         name: "Daniel Manoj",
         email: "danielmanoj@users.noreply.github.com",
       },
-      message: `Deploy ${name}: Revert homepage to previous design while preserving role onboarding and creator feed banner`,
+      message: `Deploy ${name}: Implement premium cinematic scroll interaction and seamless content takeover`,
     });
     console.log(`Committed with sha: ${sha}`);
   } catch (err: any) {
