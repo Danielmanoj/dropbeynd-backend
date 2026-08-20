@@ -74,7 +74,7 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
         name: "Daniel Manoj",
         email: "danielmanoj@users.noreply.github.com",
       },
-      message: `Deploy ${name}: AI Agent scan fixes, clear history support, and autonomous diagnostics`,
+      message: `Deploy ${name}: Prompt user for role selection (User vs Creator) on sign in and onboarding`,
     });
     console.log(`Committed with sha: ${sha}`);
   } catch (err: any) {
