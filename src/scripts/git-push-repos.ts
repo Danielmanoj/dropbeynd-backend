@@ -74,7 +74,7 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
         name: "Daniel Manoj",
         email: "danielmanoj@users.noreply.github.com",
       },
-      message: `Deploy ${name}: Implement iPhone liquid glass floating pill navbar with Home, Search, Feed`,
+      message: `Deploy ${name}: Fix creator and post image fallback and CORS referrerpolicy handling`,
     });
     console.log(`Committed with sha: ${sha}`);
   } catch (err: any) {
