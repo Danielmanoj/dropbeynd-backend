@@ -74,7 +74,7 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
         name: "Daniel Manoj",
         email: "danielmanoj@users.noreply.github.com",
       },
-      message: `Deploy ${name}: Implement premium cinematic scroll interaction and seamless content takeover`,
+      message: `Deploy ${name}: Remove Add story button from home page StoryBar`,
     });
     console.log(`Committed with sha: ${sha}`);
   } catch (err: any) {
