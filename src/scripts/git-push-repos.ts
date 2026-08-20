@@ -74,7 +74,7 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
         name: "Daniel Manoj",
         email: "danielmanoj@users.noreply.github.com",
       },
-      message: `Deploy ${name}: Integrated search & filter in navbar, removed story circles, and refined cinematic scroll takeover`,
+      message: `Deploy ${name}: Implement iPhone liquid glass floating pill navbar with Home, Search, Feed`,
     });
     console.log(`Committed with sha: ${sha}`);
   } catch (err: any) {
