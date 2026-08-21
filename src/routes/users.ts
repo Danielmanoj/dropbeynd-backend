@@ -5,9 +5,20 @@ import {
   creatorsTable,
   bookmarksTable,
   likesTable,
+  postsTable,
+  coursesTable,
+  courseProgressTable,
+  followsTable,
+  subscriptionsTable,
+  paymentMethodsTable,
+  payoutAccountsTable,
+  commentsTable,
+  notificationsTable,
+  verificationsTable,
 } from "../db";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
+import { clerkClient } from "@clerk/express";
 
 const router = Router();
 
@@ -67,6 +78,55 @@ router.put("/me", requireAuth, async (req, res) => {
     role: updated.role,
     createdAt: updated.createdAt,
   });
+});
+
+// ─── Delete Account with Confirmation ─────────────────────────────────────────
+router.delete("/me", requireAuth, async (req, res) => {
+  const user = (req as any).dbUser;
+  const { confirmation } = req.body || {};
+
+  if (!confirmation || confirmation.trim().toUpperCase() !== "DELETE MY ACCOUNT") {
+    res.status(400).json({ error: "Please verify by entering 'DELETE MY ACCOUNT'." });
+    return;
+  }
+
+  try {
+    const creator = await db.query.creatorsTable.findFirst({
+      where: eq(creatorsTable.userId, user.id),
+    });
+
+    if (creator) {
+      await db.delete(postsTable).where(eq(postsTable.creatorId, creator.id));
+      await db.delete(coursesTable).where(eq(coursesTable.creatorId, creator.id));
+      await db.delete(verificationsTable).where(eq(verificationsTable.userId, user.id));
+      await db.delete(creatorsTable).where(eq(creatorsTable.id, creator.id));
+    }
+
+    await db.delete(bookmarksTable).where(eq(bookmarksTable.userId, user.id));
+    await db.delete(likesTable).where(eq(likesTable.userId, user.id));
+    await db.delete(courseProgressTable).where(eq(courseProgressTable.userId, user.id));
+    await db.delete(followsTable).where(eq(followsTable.followerId, user.id));
+    await db.delete(subscriptionsTable).where(eq(subscriptionsTable.userId, user.id));
+    await db.delete(paymentMethodsTable).where(eq(paymentMethodsTable.userId, user.id));
+    await db.delete(payoutAccountsTable).where(eq(payoutAccountsTable.userId, user.id));
+    await db.delete(commentsTable).where(eq(commentsTable.userId, user.id));
+    await db.delete(notificationsTable).where(eq(notificationsTable.userId, user.id));
+
+    await db.delete(usersTable).where(eq(usersTable.id, user.id));
+
+    if (user.clerkId) {
+      try {
+        await clerkClient.users.deleteUser(user.clerkId);
+      } catch (clerkErr) {
+        req.log.warn({ clerkErr }, "Clerk user deletion skipped/failed");
+      }
+    }
+
+    res.json({ success: true, message: "Account deleted permanently." });
+  } catch (err: any) {
+    req.log.error({ err }, "Account deletion error");
+    res.status(500).json({ error: "Failed to delete account. Please try again." });
+  }
 });
 
 router.get("/bookmarks", requireAuth, async (req, res) => {

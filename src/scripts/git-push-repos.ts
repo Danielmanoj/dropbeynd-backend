@@ -74,7 +74,7 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
         name: "Daniel Manoj",
         email: "danielmanoj@users.noreply.github.com",
       },
-      message: `Deploy ${name}: JioHotstar collapsible/expandable Navigation Rail sidebar`,
+      message: `Deploy ${name}: Creator subscription checkout flow and instant content unlock`,
     });
     console.log(`Committed with sha: ${sha}`);
   } catch (err: any) {
