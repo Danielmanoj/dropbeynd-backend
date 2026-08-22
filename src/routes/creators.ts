@@ -157,7 +157,7 @@ router.post("/me", requireAuth, async (req, res) => {
     monthlyPrice: String(monthlyPrice ?? 9.99),
   }).returning();
 
-  await db.update(usersTable).set({ role: "creator" }).where(eq(usersTable.id, user.id));
+  await db.update(usersTable).set({ role: "creator", roleSelected: true }).where(eq(usersTable.id, user.id));
 
   res.status(201).json({
     id: creator.id,

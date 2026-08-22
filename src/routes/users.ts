@@ -31,17 +31,19 @@ router.get("/me", requireAuth, async (req, res) => {
     name: user.name ?? null,
     avatarUrl: user.avatarUrl ?? null,
     role: user.role,
+    roleSelected: user.roleSelected ?? (user.role === "creator" || user.role === "admin"),
     createdAt: user.createdAt,
   });
 });
 
 router.put("/me", requireAuth, async (req, res) => {
   const user = (req as any).dbUser;
-  const { name, avatarUrl } = req.body;
+  const { name, avatarUrl, roleSelected } = req.body;
 
-  const updates: Record<string, string> = {};
+  const updates: Record<string, any> = {};
   if (name !== undefined) updates.name = name;
   if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+  if (roleSelected !== undefined) updates.roleSelected = Boolean(roleSelected);
 
   if (Object.keys(updates).length === 0) {
     res.json({
@@ -51,6 +53,7 @@ router.put("/me", requireAuth, async (req, res) => {
       name: user.name ?? null,
       avatarUrl: user.avatarUrl ?? null,
       role: user.role,
+      roleSelected: user.roleSelected ?? (user.role === "creator" || user.role === "admin"),
       createdAt: user.createdAt,
     });
     return;
@@ -76,6 +79,7 @@ router.put("/me", requireAuth, async (req, res) => {
     name: updated.name ?? null,
     avatarUrl: updated.avatarUrl ?? null,
     role: updated.role,
+    roleSelected: updated.roleSelected,
     createdAt: updated.createdAt,
   });
 });

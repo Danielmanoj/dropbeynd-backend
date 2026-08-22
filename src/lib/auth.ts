@@ -43,11 +43,11 @@ export async function requireAuth(
       : null;
     const avatarUrl = clerkUser?.imageUrl ?? null;
     const role = email === ADMIN_EMAIL ? "admin" : "user";
-
     const id = crypto.randomUUID();
+    const roleSelected = role === "admin" || clerkUser?.unsafeMetadata?.roleSelected === true;
     [user] = await db
       .insert(usersTable)
-      .values({ id, clerkId: auth.userId, email, name, avatarUrl, role })
+      .values({ id, clerkId: auth.userId, email, name, avatarUrl, role, roleSelected })
       .onConflictDoUpdate({
         target: usersTable.clerkId,
         set: { email, name: name ?? null, avatarUrl: avatarUrl ?? null },

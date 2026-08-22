@@ -18,6 +18,7 @@ export const usersTable = pgTable("users", {
   name: text("name"),
   avatarUrl: text("avatar_url"),
   role: userRoleEnum("role").default("user").notNull(),
+  roleSelected: boolean("role_selected").default(false).notNull(),
   isSuspended: boolean("is_suspended").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

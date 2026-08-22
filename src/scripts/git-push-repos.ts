@@ -74,7 +74,7 @@ async function pushRepo(dir: string, remoteUrl: string, name: string) {
         name: "Daniel Manoj",
         email: "danielmanoj@users.noreply.github.com",
       },
-      message: `Deploy ${name}: Creator subscription checkout flow and instant content unlock`,
+      message: `Deploy ${name}: Two-step verification self-serve account deletion in Settings`,
     });
     console.log(`Committed with sha: ${sha}`);
   } catch (err: any) {

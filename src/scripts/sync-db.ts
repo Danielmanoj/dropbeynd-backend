@@ -7,6 +7,7 @@ async function run() {
     console.log("Applying schema updates...");
     await db.execute(sql`
       ALTER TABLE "posts" ADD COLUMN IF NOT EXISTS "views_count" integer DEFAULT 0 NOT NULL;
+      ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "role_selected" boolean DEFAULT false NOT NULL;
     `);
 
     await db.execute(sql`
