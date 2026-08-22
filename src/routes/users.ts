@@ -109,14 +109,14 @@ router.delete("/me", requireAuth, async (req, res) => {
     if (creator) {
       await db.delete(postsTable).where(eq(postsTable.creatorId, creator.id));
       await db.delete(coursesTable).where(eq(coursesTable.creatorId, creator.id));
-      await db.delete(verificationsTable).where(eq(verificationsTable.userId, user.id));
+      await db.delete(verificationsTable).where(eq(verificationsTable.creatorId, creator.id));
       await db.delete(creatorsTable).where(eq(creatorsTable.id, creator.id));
     }
 
     await db.delete(bookmarksTable).where(eq(bookmarksTable.userId, user.id));
     await db.delete(likesTable).where(eq(likesTable.userId, user.id));
     await db.delete(courseProgressTable).where(eq(courseProgressTable.userId, user.id));
-    await db.delete(followsTable).where(eq(followsTable.followerId, user.id));
+    await db.delete(followsTable).where(eq(followsTable.userId, user.id));
     await db.delete(subscriptionsTable).where(eq(subscriptionsTable.userId, user.id));
     await db.delete(paymentMethodsTable).where(eq(paymentMethodsTable.userId, user.id));
     await db.delete(payoutAccountsTable).where(eq(payoutAccountsTable.userId, user.id));

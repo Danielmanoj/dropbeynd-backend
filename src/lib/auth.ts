@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { getAuth, clerkClient } from "@clerk/express";
-import { db } from "../db";
-import { usersTable } from "../db";
+import { db, usersTable, creatorsTable } from "../db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 
