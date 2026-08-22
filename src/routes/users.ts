@@ -24,14 +24,21 @@ const router = Router();
 
 router.get("/me", requireAuth, async (req, res) => {
   const user = (req as any).dbUser;
+
+  // Double check if a creator profile exists in creatorsTable
+  const creator = await db.query.creatorsTable.findFirst({
+    where: eq(creatorsTable.userId, user.id),
+  });
+  const effectiveRole = user.role === "admin" ? "admin" : creator ? "creator" : user.role;
+
   res.json({
     id: user.id,
     clerkId: user.clerkId,
     email: user.email,
     name: user.name ?? null,
     avatarUrl: user.avatarUrl ?? null,
-    role: user.role,
-    roleSelected: user.roleSelected ?? (user.role === "creator" || user.role === "admin"),
+    role: effectiveRole,
+    roleSelected: user.roleSelected ?? (effectiveRole === "creator" || effectiveRole === "admin"),
     createdAt: user.createdAt,
   });
 });

@@ -34,36 +34,70 @@ export async function requireAuth(
     where: eq(usersTable.clerkId, auth.userId),
   });
 
+  const email = await getClerkEmail(auth.userId);
+  const clerkUser = await clerkClient.users.getUser(auth.userId).catch(() => null);
+
   if (!user) {
-    // First sign-in: fetch real email from Clerk backend
-    const email = await getClerkEmail(auth.userId);
-    const clerkUser = await clerkClient.users.getUser(auth.userId).catch(() => null);
-    const name = clerkUser
-      ? [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || null
-      : null;
-    const avatarUrl = clerkUser?.imageUrl ?? null;
-    const role = email === ADMIN_EMAIL ? "admin" : "user";
-    const id = crypto.randomUUID();
-    const roleSelected = role === "admin" || clerkUser?.unsafeMetadata?.roleSelected === true;
-    [user] = await db
-      .insert(usersTable)
-      .values({ id, clerkId: auth.userId, email, name, avatarUrl, role, roleSelected })
-      .onConflictDoUpdate({
-        target: usersTable.clerkId,
-        set: { email, name: name ?? null, avatarUrl: avatarUrl ?? null },
-      })
-      .returning();
+    // Check if user already exists in DB by email
+    const existingByEmail = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, email),
+    });
+
+    if (existingByEmail) {
+      // Re-link clerkId to the existing user account
+      [user] = await db
+        .update(usersTable)
+        .set({
+          clerkId: auth.userId,
+          name: existingByEmail.name ?? (clerkUser ? [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") : null),
+          avatarUrl: existingByEmail.avatarUrl ?? clerkUser?.imageUrl ?? null,
+        })
+        .where(eq(usersTable.id, existingByEmail.id))
+        .returning();
+    } else {
+      // First sign-in: create new user
+      const name = clerkUser
+        ? [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || null
+        : null;
+      const avatarUrl = clerkUser?.imageUrl ?? null;
+      const role = email === ADMIN_EMAIL ? "admin" : "user";
+      const id = crypto.randomUUID();
+      const roleSelected = role === "admin" || clerkUser?.unsafeMetadata?.roleSelected === true;
+      [user] = await db
+        .insert(usersTable)
+        .values({ id, clerkId: auth.userId, email, name, avatarUrl, role, roleSelected })
+        .onConflictDoUpdate({
+          target: usersTable.clerkId,
+          set: { email, name: name ?? null, avatarUrl: avatarUrl ?? null },
+        })
+        .returning();
+    }
   } else {
     // Existing user: fix placeholder email if present, then check admin
     const hasPlaceholder = user.email?.includes("@placeholder.com");
     if (hasPlaceholder || (user.email === ADMIN_EMAIL && user.role !== "admin")) {
-      const email = hasPlaceholder ? await getClerkEmail(auth.userId) : user.email;
+      const actualEmail = hasPlaceholder ? email : user.email;
       const role =
-        email === ADMIN_EMAIL ? "admin" : user.role === "admin" ? "admin" : user.role;
+        actualEmail === ADMIN_EMAIL ? "admin" : user.role === "admin" ? "admin" : user.role;
       [user] = await db
         .update(usersTable)
-        .set({ email, role })
+        .set({ email: actualEmail, role })
         .where(eq(usersTable.clerkId, auth.userId))
+        .returning();
+    }
+  }
+
+  // ─── Automatic Creator Profile Sync ───
+  // If the user has a creator profile in creatorsTable, ensure role is "creator"
+  if (user && user.role !== "admin") {
+    const creator = await db.query.creatorsTable.findFirst({
+      where: eq(creatorsTable.userId, user.id),
+    });
+    if (creator && user.role !== "creator") {
+      [user] = await db
+        .update(usersTable)
+        .set({ role: "creator", roleSelected: true })
+        .where(eq(usersTable.id, user.id))
         .returning();
     }
   }
@@ -85,10 +119,18 @@ export async function optionalAuth(
 ): Promise<void> {
   const auth = getAuth(req);
   if (auth.userId) {
-    const user = await db.query.usersTable.findFirst({
+    let user = await db.query.usersTable.findFirst({
       where: eq(usersTable.clerkId, auth.userId),
     });
     if (user) {
+      if (user.role !== "admin") {
+        const creator = await db.query.creatorsTable.findFirst({
+          where: eq(creatorsTable.userId, user.id),
+        });
+        if (creator && user.role !== "creator") {
+          user.role = "creator";
+        }
+      }
       (req as any).dbUser = user;
     }
   }
@@ -100,12 +142,33 @@ export async function requireCreator(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const dbUser = (req as any).dbUser;
-  if (!dbUser || (dbUser.role !== "creator" && dbUser.role !== "admin")) {
-    res.status(403).json({ error: "Creator access required" });
+  let dbUser = (req as any).dbUser;
+  if (!dbUser) {
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
-  next();
+  if (dbUser.role === "creator" || dbUser.role === "admin") {
+    next();
+    return;
+  }
+
+  // Fallback check: look up creatorsTable for this user
+  const creator = await db.query.creatorsTable.findFirst({
+    where: eq(creatorsTable.userId, dbUser.id),
+  });
+  if (creator) {
+    dbUser.role = "creator";
+    dbUser.roleSelected = true;
+    await db
+      .update(usersTable)
+      .set({ role: "creator", roleSelected: true })
+      .where(eq(usersTable.id, dbUser.id));
+    (req as any).dbUser = dbUser;
+    next();
+    return;
+  }
+
+  res.status(403).json({ error: "Creator access required" });
 }
 
 export async function requireAdmin(

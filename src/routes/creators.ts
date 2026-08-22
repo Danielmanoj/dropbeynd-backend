@@ -102,9 +102,20 @@ router.get("/", async (req, res) => {
 
 router.get("/me", requireAuth, async (req, res) => {
   const user = (req as any).dbUser;
-  const creator = await db.query.creatorsTable.findFirst({
+  let creator = await db.query.creatorsTable.findFirst({
     where: eq(creatorsTable.userId, user.id),
   });
+
+  if (!creator && user.name) {
+    const creatorByName = await db.query.creatorsTable.findFirst({
+      where: eq(creatorsTable.name, user.name),
+    });
+    if (creatorByName) {
+      await db.update(creatorsTable).set({ userId: user.id }).where(eq(creatorsTable.id, creatorByName.id));
+      await db.update(usersTable).set({ role: "creator", roleSelected: true }).where(eq(usersTable.id, user.id));
+      creator = creatorByName;
+    }
+  }
 
   if (!creator) {
     res.status(404).json({ error: "Creator profile not found" });
